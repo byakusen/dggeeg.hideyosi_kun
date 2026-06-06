@@ -64,16 +64,19 @@
   .face{ width:clamp(110px,14vw,170px); height:clamp(110px,14vw,170px); border-radius:50%;
     overflow:hidden; background:#241c15; border:5px solid var(--kin);
     box-shadow:0 0 0 4px var(--sumi),0 10px 30px rgba(0,0,0,.5); position:relative; transition:transform .25s; }
-  .face img{ width:100%;height:100%;object-fit:cover;display:block; }
-  .face-fallback{ display:none; width:100%;height:100%; align-items:center;justify-content:center;
+  /* 口パク：閉じた口・開けた口の2枚を重ねて表示し、talking-openで切りかえる */
+  .face img,.face .mouth{ width:100%;height:100%;object-fit:cover;display:block; }
+  .face .mouth{ position:absolute; inset:0; }
+  .face .mouth.closed{ z-index:1; }          /* 閉じた口：いつも見えている */
+  .face .mouth.open{ z-index:2; opacity:0; } /* 開けた口：ふだんは透明 */
+  .face.talking-open .mouth.open{ opacity:1; } /* しゃべっている瞬間だけ見える */
+  .face.no-img .mouth{ display:none; }
+  .face-fallback{ display:none; position:absolute; inset:0; z-index:3; width:100%;height:100%; align-items:center;justify-content:center;
     font-family:'Yuji Syuku',serif; font-size:clamp(18px,2.4vw,28px);line-height:1.15;
     color:var(--kin-akarui);letter-spacing:.05em; background:radial-gradient(circle at 50% 38%, #5a4424, #1a1410); }
   .face.no-img .face-fallback{display:flex;}
-  .face.talk{animation:nod .6s ease;}
-  @keyframes nod{0%,100%{transform:translateY(0)}30%{transform:translateY(6px) rotate(-2deg)}60%{transform:translateY(0) rotate(2deg)}}
-  .face.seikai{animation:nod .6s ease;box-shadow:0 0 0 4px var(--sumi),0 0 34px 6px rgba(255,216,107,.85),0 10px 30px rgba(0,0,0,.5);}
-  .face.zannen{animation:shake .5s ease;}
-  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px) rotate(-2deg)}40%{transform:translateX(7px) rotate(2deg)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+  /* 縦揺れ・横揺れはしない。正解のときだけ、顔のまわりを金色に光らせる */
+  .face.seikai{box-shadow:0 0 0 4px var(--sumi),0 0 34px 6px rgba(255,216,107,.85),0 10px 30px rgba(0,0,0,.5);}
   .name-tag{ margin-top:10px;font-family:'Yuji Syuku',serif; font-size:clamp(15px,1.9vw,22px);color:var(--kin-akarui);letter-spacing:.1em; }
 
   .scroll{ flex:1;position:relative; background:linear-gradient(180deg,var(--washi),var(--washi-kage));
@@ -249,8 +252,14 @@
     <div class="stage">
       <div class="hideyoshi">
         <div class="face" id="face">
-          <img src="https://raw.githubusercontent.com/byakusen/geogeleg.hideyosi_gazou/main/hideyosi.png" alt="豊臣秀吉"
-               onerror="this.style.display='none';this.parentNode.classList.add('no-img');">
+          <img class="mouth closed"
+               src="https://raw.githubusercontent.com/byakusen/geogeleg.hideyosi_gazou/main/hideyosi.png"
+               alt="豊臣秀吉（口を閉じた絵）"
+               onerror="this.closest('.face').classList.add('no-img');">
+          <img class="mouth open"
+               src="https://raw.githubusercontent.com/byakusen/dggeeg.hideyosi_kun/main/hideyosi2.png"
+               alt="" aria-hidden="true"
+               onerror="this.style.display='none';">
           <span class="face-fallback">豊<br>臣<br>秀<br>吉</span>
         </div>
         <div class="name-tag">豊臣秀吉</div>
@@ -984,6 +993,18 @@ function showToast(msg){
 const answerEl=document.getElementById('answer');
 const faceEl=document.getElementById('face');
 let typing=null;
+
+// 口パク：130msごとに talking-open を付け外しして、開け口・閉じ口を切りかえる
+let mouthTimer=null;
+function startMouth(){
+  stopMouth();
+  mouthTimer=setInterval(()=>{ faceEl.classList.toggle('talking-open'); },130);
+}
+function stopMouth(){
+  if(mouthTimer){ clearInterval(mouthTimer); mouthTimer=null; }
+  faceEl.classList.remove('talking-open');  // 最後は口を閉じた絵にもどす
+}
+
 function speak(text, mood){
   faceEl.classList.remove('talk','seikai','zannen'); void faceEl.offsetWidth;
   faceEl.classList.add(mood||'talk');
@@ -992,8 +1013,9 @@ function speak(text, mood){
   let i=0;
   const cursor=document.createElement('span'); cursor.className='cursor'; cursor.textContent='　';
   answerEl.appendChild(cursor);
+  startMouth();  // しゃべりはじめ：口を動かす
   typing=setInterval(()=>{
-    if(i>=text.length){clearInterval(typing); cursor.remove(); return;}
+    if(i>=text.length){clearInterval(typing); cursor.remove(); stopMouth(); return;}  // しゃべりおわり：口を止める
     answerEl.insertBefore(document.createTextNode(text[i]),cursor); i++;
   },30);
 }

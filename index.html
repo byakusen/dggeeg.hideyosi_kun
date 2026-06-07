@@ -85,8 +85,6 @@
   .scroll::before{ content:"";position:absolute;left:-18px;top:42px;
     border-style:solid;border-width:14px 18px 14px 0; border-color:transparent var(--kin) transparent transparent; }
   .scroll .answer{ font-family:'Klee One',serif; font-size:clamp(19px,2.5vw,30px); line-height:1.7;font-weight:600;letter-spacing:.02em; }
-  .cursor{display:inline-block;width:.5em;background:var(--aka);animation:blink .7s steps(1) infinite;}
-  @keyframes blink{50%{opacity:0}}
 
   .panel{display:none;}
   .panel.show{display:block;}
@@ -1011,12 +1009,10 @@ function speak(text, mood){
   if(typing) clearInterval(typing);
   answerEl.innerHTML="";
   let i=0;
-  const cursor=document.createElement('span'); cursor.className='cursor'; cursor.textContent='　';
-  answerEl.appendChild(cursor);
   startMouth();  // しゃべりはじめ：口を動かす
   typing=setInterval(()=>{
-    if(i>=text.length){clearInterval(typing); cursor.remove(); stopMouth(); return;}  // しゃべりおわり：口を止める
-    answerEl.insertBefore(document.createTextNode(text[i]),cursor); i++;
+    if(i>=text.length){clearInterval(typing); stopMouth(); return;}  // しゃべりおわり：口を止める
+    answerEl.appendChild(document.createTextNode(text[i])); i++;
   },30);
 }
 
